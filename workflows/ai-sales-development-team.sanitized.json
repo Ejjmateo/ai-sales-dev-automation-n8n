@@ -1,0 +1,1149 @@
+{
+  "name": "AI Sales Development Team",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "800187cb-8389-4b5e-a658-a81a70eb08c5",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -832,
+        64
+      ],
+      "id": "af18f4ea-00dc-460f-a5c3-db6ee7d54038",
+      "name": "Get Data From GHL form",
+      "webhookId": "800187cb-8389-4b5e-a658-a81a70eb08c5"
+    },
+    {
+      "parameters": {
+        "url": "https://api.apollo.io/api/v1/organizations/enrich",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "={{ $json.company_domain }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "YOUR_APOLLO_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        -16
+      ],
+      "id": "508b0525-f5dc-4093-a021-d9347edd1ed4",
+      "name": "Apollo API"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d3553323-f406-48ba-9d21-1e9c2dd6b0e5",
+              "name": "company_name",
+              "value": "={{ $json.organization.name }}",
+              "type": "string"
+            },
+            {
+              "id": "8c51ebd7-946c-4472-944b-492623fc7256",
+              "name": "industry",
+              "value": "={{ $json.organization.industry }}",
+              "type": "string"
+            },
+            {
+              "id": "7865f2e1-75dc-47c3-8b9b-4f6b20b45504",
+              "name": "description",
+              "value": "={{ $json.organization.short_description.replace(/\\n/g, \"\") }}",
+              "type": "string"
+            },
+            {
+              "id": "4726f1e1-26e6-4be5-9b08-d3e7f1b90b2b",
+              "name": "domain",
+              "value": "={{ $json.organization.primary_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "cc06b7fc-781d-454b-a895-5ef4b9da9dd2",
+              "name": "company_size",
+              "value": "={{ $json.organization.estimated_num_employees }}",
+              "type": "number"
+            },
+            {
+              "id": "30d9a0b7-5d38-4b22-8bfa-d33b7f496024",
+              "name": "address",
+              "value": "={{ $json.organization.raw_address }}",
+              "type": "string"
+            },
+            {
+              "id": "903fb795-650b-417a-80eb-7d355b82e25e",
+              "name": "linkedIn",
+              "value": "={{ $json.organization.linkedin_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        -16
+      ],
+      "id": "6e3a3ced-3e28-434b-ab13-7e8b04f2baa6",
+      "name": "Payload for Qualification Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Please use the system prompt",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a sales development assistant responsible for qualifying inbound leads.\n\nYour job is to analyze enriched lead data and determine whether the lead is a good potential customer.\n\nEvaluate the lead based on the following factors:\n\n1. Company size\n2. Industry relevance\n3. Job title / decision-making authority\n4. Company growth potential\n5. Fit with AI automation or workflow automation services\n\nHere are the relevant data you can use: \n\n1. Company Name: {{ $json.company_name }}\n2. Industry: {{ $json.industry }}\n3. Description: {{ $json.description }}\n4. Domain: {{ $json.domain }}\n5. Company Size: {{ $json.company_size }}\n6. Address: {{ $json.address }}\n7. LinkedIn: {{ $json.linkedIn }}\n\nYou are also equipped with a [WebSearch] tool if you need to search the internet for more info. \n\nAssign a lead score from 1 to 10, where:\n\n1-3 = Low quality lead  \n4-6 = Moderate lead  \n7-10 = High quality \n\nThen explain the reasoning for the score and recommend the best next action.\n\nYour output should be in JSON format\n\n\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1136,
+        -16
+      ],
+      "id": "97af43bd-9e5d-4b5a-9d3d-63b8cab68a4c",
+      "name": "Lead Qualification Agent"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"lead_score\": 8,\n  \"lead_quality\": \"High\",\n  \"reasoning\": \"The lead is a marketing director at a mid-sized SaaS company, which typically benefits from workflow automation and AI-driven lead management.\",\n  \"recommended_action\": \"Send personalized outreach email and notify sales team.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        304
+      ],
+      "id": "739a67f8-5534-4e5f-8517-6f4848027e73",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        -96
+      ],
+      "id": "2f3b6899-e04f-4f48-9c01-440e02780a96",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the web",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            },
+            {
+              "name": "include_answer",
+              "value": "basic"
+            },
+            {
+              "name": "search_depth",
+              "value": "advanced"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        288
+      ],
+      "id": "3f6703ed-b38e-4a13-816b-18f94c59ab78",
+      "name": "WebSearch Tool"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Use the system prompt",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an experienced Sales Development Representative (SDR).\n\nYour job is to write highly personalized cold outreach emails for a company that provides AI automation and workflow automation services.\n\nThe goal of the email is to start a conversation with the lead, not aggressively sell.\n\nGuidelines:\n\n\u2022 Keep the email short and natural (80\u2013120 words)\n\u2022 Use a friendly and conversational tone\n\u2022 Reference the lead's company or role when possible\n\u2022 Mention a potential automation opportunity relevant to their role\n\u2022 Avoid sounding overly promotional\n\u2022 Focus on curiosity and value\n\nStructure the email with:\n\n1. Personalized opening line\n2. Short value proposition related to automation\n3. Light call to action asking if they would be open to a quick conversation\n\nHere are the data you will base your email from: \n\n1. Company Name: {{ $('Payload for Qualification Agent').item.json.company_name }}\n2. Industry: {{ $('Payload for Qualification Agent').item.json.industry }}\n3. Description: {{ $('Payload for Qualification Agent').item.json.description }}\n4. Domain: {{ $('Payload for Qualification Agent').item.json.domain }}\n5. Company Size: {{ $('Payload for Qualification Agent').item.json.company_size }}\n6. Address: {{ $('Payload for Qualification Agent').item.json.address }}\n7. LinkedIn: {{ $('Payload for Qualification Agent').item.json.linkedIn }}\n8. Lead Quality: {{ $json.output.lead_quality }}\n9. Reasoning: {{ $json.output.reasoning }}\n\nReturn the output ONLY in valid JSON using the format provided."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1808,
+        -368
+      ],
+      "id": "f184f95b-d51d-4b92-a640-a4341973bba3",
+      "name": "Outreach Message Generation Agent"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the web",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            },
+            {
+              "name": "include_answer",
+              "value": "basic"
+            },
+            {
+              "name": "search_depth",
+              "value": "advanced"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1904,
+        -96
+      ],
+      "id": "436d3386-0df9-4e13-8027-811490d071b5",
+      "name": "WebSearch Tool1"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"subject\": \"Quick idea for automating workflows at {{company_name}}\",\n  \"email_body\": \"Hi {{name}},\\n\\nI came across {{company_name}} while researching companies in the {{industry}} space and thought I\u2019d reach out.\\n\\nMany teams in similar companies are exploring ways to automate repetitive workflows like lead management, reporting, and internal processes using AI-powered systems.\\n\\nI help businesses design automation workflows that connect their tools and eliminate manual work.\\n\\nWould you be open to a quick conversation to see if there might be opportunities for automation at {{company_name}}?\\n\\nBest,\\n[Your Name]\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        -96
+      ],
+      "id": "18aea0c7-b0b4-4a8f-8720-bb864366f110",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.output.subject }}",
+        "message": "={{ $json.output.email_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2112,
+        -368
+      ],
+      "id": "dec4b45c-0db1-4e86-b2e3-1ad80a7b65ca",
+      "name": "Create a draft",
+      "webhookId": "650759c0-994b-441b-be42-d21ca4d966c5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0APVMAG3K3",
+          "mode": "list",
+          "cachedResultName": "CONFIGURE_IN_N8N"
+        },
+        "text": "=An email draft for a high priority lead has been created.\n\nCompany Name: {{ $('Payload for Qualification Agent').item.json.company_name }}\nLead Score: {{ $('Lead Qualification Agent').item.json.output.lead_score }}\nReasoning: {{ $('Lead Qualification Agent').item.json.output.reasoning }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2288,
+        -368
+      ],
+      "id": "9080e24d-ea8b-4746-aa20-92a5f15a503c",
+      "name": "Send a message",
+      "webhookId": "30d77722-12b8-4e19-b69d-83b40a58271c",
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.lead_score }}",
+                    "rightValue": 7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "b354683a-396a-417e-b049-83fbc4f2d299"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "High"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a7c447f5-2751-414c-a804-9ad3f18c3889",
+                    "leftValue": "={{ $json.output.lead_quality }}",
+                    "rightValue": "Moderate lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Moderate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7bc4f414-dab9-4e8e-b3d3-eb6bb566b42f",
+                    "leftValue": "={{ $json.output.lead_quality }}",
+                    "rightValue": "Low quality lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Low"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1520,
+        -32
+      ],
+      "id": "39a9196f-808f-4bd2-8cf1-d7bcc2df98ec",
+      "name": "Switch based on lead quality"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0APVMBBKHP",
+          "mode": "list",
+          "cachedResultName": "CONFIGURE_IN_N8N"
+        },
+        "text": "=Lead for nurturing alert! \n\nCompany Name: {{ $('Payload for Qualification Agent').item.json.company_name }}\nLead Score: {{ $('Lead Qualification Agent').item.json.output.lead_score }}\nReasoning: {{ $('Lead Qualification Agent').item.json.output.reasoning }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1824,
+        96
+      ],
+      "id": "18cbf3a0-3351-4403-88df-e6f4cce30e2e",
+      "name": "Send Alert to Leads-for-nurturing channel",
+      "webhookId": "3e60e197-7f06-4085-a423-1e5a54031e61",
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0APGQYJDSN",
+          "mode": "list",
+          "cachedResultName": "CONFIGURE_IN_N8N"
+        },
+        "text": "=Low Prio Lead alert!\n\nCompany Name: {{ $('Payload for Qualification Agent').item.json.company_name }}\nLead Score: {{ $('Lead Qualification Agent').item.json.output.lead_score }}\nReasoning: {{ $('Lead Qualification Agent').item.json.output.reasoning }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1824,
+        288
+      ],
+      "id": "0c1b9f34-a3a2-4a08-bb29-5f3f277c104e",
+      "name": "Send Alert to Low-Prio-Leads Channel",
+      "webhookId": "350c4a3f-c6a3-4bc1-bf4a-f1901530e0ef",
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "x-ai/grok-4.1-fast",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        288
+      ],
+      "id": "030febf3-8ff6-47f4-ba06-8488cd3058ef",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the web",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', ``, 'string') }}"
+            },
+            {
+              "name": "include_answer",
+              "value": "basic"
+            },
+            {
+              "name": "search_depth",
+              "value": "advanced"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -256,
+        288
+      ],
+      "id": "28a05533-7f0d-49e8-bb09-b53df36b44ce",
+      "name": "WebSearch Tool2"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"company_name\": \"HubSpot\",\n  \"company_domain\": \"hubspot.com\",\n  \"company_website\": \"https://www.hubspot.com\",\n  \"confidence\": \"high\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        288
+      ],
+      "id": "e0ea0181-215f-4d99-9ca5-3fab5577147e",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Use system prompt",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a helpful assistantYou are a lead research assistant for a sales development system.\n\nYour task is to identify the official website and domain of a company based on the lead information provided.\n\nInstructions:\n\n1. Analyze the company name and any additional information provided.\n2. Search the web to identify the company's official website.\n3. Extract the root domain (example: stripe.com).\n4. Ensure the domain is the official company website, not a directory or third-party listing.\n5. If multiple domains exist, choose the most likely official domain.\n\nHere are the input data you can use: \n\n1. Company Name: {{ $json.company_name }}\n2. Inputted Website: {{ $json.website }}\n3. Email: {{ $json.email }}\n\nYou are equipped with a webSearch tool, use it when you need to browse the web. \n\nReturn the output ONLY invalid JSON with the following structure.\n\n\nIf you cannot confidently determine the domain, return null values."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -336,
+        64
+      ],
+      "id": "68ba15c2-bcf8-4423-aef4-8b3f52398aa0",
+      "name": "Lead Researcher Agent",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3b21949-2f12-49d9-829b-85e9c59d7d34",
+              "name": "company_name",
+              "value": "={{ $json.body.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "eab89624-ed35-4367-98ed-9a40e131ca24",
+              "name": "firstName",
+              "value": "={{ $json.body.first_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d77fe8d7-5e80-4949-bde6-b96a9bd76c7f",
+              "name": "lastName",
+              "value": "={{ $json.body.last_name }}",
+              "type": "string"
+            },
+            {
+              "id": "dde22ed3-99fd-4194-9f47-fed09c66fc6d",
+              "name": "website",
+              "value": "={{ $json.body.website }}",
+              "type": "string"
+            },
+            {
+              "id": "579d7e9a-9c0c-4df9-a8bc-125cb029f7c1",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -608,
+        64
+      ],
+      "id": "e69e5010-97ed-4a32-89d1-eac0fd871b8d",
+      "name": "Set Payload for Lead Researcher Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18f785ab-10ea-4926-8241-79effe410a24",
+              "name": "company_name",
+              "value": "={{ $json.output.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "3d39d5ab-5359-4295-869d-59270bde3afc",
+              "name": "company_domain",
+              "value": "={{ $json.output.company_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "deaaba2f-0112-48ba-8975-26229ef0e3bd",
+              "name": "company_website",
+              "value": "={{ $json.output.company_website }}",
+              "type": "string"
+            },
+            {
+              "id": "c420935b-45f0-4cca-a1fe-e02b944b908b",
+              "name": "confidence",
+              "value": "={{ $json.output.confidence }}",
+              "type": "string"
+            },
+            {
+              "id": "076730f9-85b6-4afd-ba82-2c8086bf57fc",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        64
+      ],
+      "id": "e47af0c9-884a-413a-9004-f593a8ef6c0c",
+      "name": "Set Payload for Apollo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f4b8511c-9753-436d-9bf7-cf19f479f2fb",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        -176
+      ],
+      "id": "09f05342-c29f-4380-88d5-2fd5e17ff18a",
+      "name": "Check if confidence is high"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0APAPFN5R9",
+          "mode": "list",
+          "cachedResultName": "CONFIGURE_IN_N8N"
+        },
+        "message": "=Hi, I need to confirm if these details look correct in you before I proceed: \n\n1. Company Name: {{ $('Set Payload for Apollo').item.json.company_name }}\n2. Company Domain: {{ $('Set Payload for Apollo').item.json.company_domain }}\n3. Company Website: {{ $('Set Payload for Apollo').item.json.company_website }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        176
+      ],
+      "id": "7bb0b7f2-93c6-44a3-a42f-e21389903701",
+      "name": "Escalate to Human",
+      "webhookId": "ce1b81ad-9d26-498e-909a-5560e26e8c9c",
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aa734553-eb83-493b-8ca4-05632302a36f",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        32
+      ],
+      "id": "3f5ad304-f4c8-4566-9846-37c6c7af90e3",
+      "name": "Wait for human intervention"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CONFIGURE_IN_N8N",
+          "cachedResultUrl": "REPLACE_WITH_YOUR_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "CONFIGURE_IN_N8N",
+          "cachedResultUrl": "REPLACE_WITH_YOUR_URL"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company Name": "={{ $('Payload for Qualification Agent').item.json.company_name }}",
+            "Company Size": "={{ $('Payload for Qualification Agent').item.json.company_size }}",
+            "Company Domain": "={{ $('Payload for Qualification Agent').item.json.domain }}",
+            "Message Drafted?": "={{ $('Outreach Message Generation Agent').item.json.output.subject }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Size",
+              "displayName": "Company Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Domain",
+              "displayName": "Company Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message Drafted?",
+              "displayName": "Message Drafted?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2496,
+        -368
+      ],
+      "id": "8e6cecfa-ab8d-485d-8137-3a8112f39e96",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Data From GHL form": {
+      "main": [
+        [
+          {
+            "node": "Set Payload for Lead Researcher Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo API": {
+      "main": [
+        [
+          {
+            "node": "Payload for Qualification Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload for Qualification Agent": {
+      "main": [
+        [
+          {
+            "node": "Lead Qualification Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Lead Qualification Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Lead Qualification Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Outreach Message Generation Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WebSearch Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lead Qualification Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Qualification Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch based on lead quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WebSearch Tool1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Outreach Message Generation Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Outreach Message Generation Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outreach Message Generation Agent": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch based on lead quality": {
+      "main": [
+        [
+          {
+            "node": "Outreach Message Generation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Alert to Leads-for-nurturing channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Alert to Low-Prio-Leads Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Lead Researcher Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WebSearch Tool2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Lead Researcher Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Lead Researcher Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Payload for Lead Researcher Agent": {
+      "main": [
+        [
+          {
+            "node": "Lead Researcher Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Researcher Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Payload for Apollo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Set Payload for Apollo": {
+      "main": [
+        [
+          {
+            "node": "Check if confidence is high",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if confidence is high": {
+      "main": [
+        [
+          {
+            "node": "Apollo API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate to Human",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Human": {
+      "main": [
+        [
+          {
+            "node": "Wait for human intervention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for human intervention": {
+      "main": [
+        [
+          {
+            "node": "Apollo API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6a1089a2-a7db-4c98-91d8-07745c64d742",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "note": "Credentials and instance metadata removed for public repo."
+  },
+  "id": "f7wYo0GkSX0OKGKH",
+  "tags": []
+}
